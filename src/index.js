@@ -4,15 +4,15 @@ const EOL = '🅴🅾🅻';
 export default class {
   constructor() {
     this.init();
-    this.backHandler = () => this.exec();
-    window.addEventListener('popstate', this.backHandler);
   }
 
   init() {
-    window.removeEventListener('popstate', this.backHandler);
     this.queue = [];
     this.index = -1;
     this.fns = {};
+    this.backHandler = () => this.exec();
+    window.removeEventListener('popstate', this.backHandler);
+    window.addEventListener('popstate', this.backHandler);
   }
 
   use(fn) {
@@ -27,19 +27,27 @@ export default class {
       history.replaceState(this.createState(), null);
       history.pushState(this.createState('eol'), null);
     }
+
+    return this.index;
+  }
+
+  eject(id) {
+    const index = this.queue.findIndex(id);
+    this.queue.splice(index, 1);
+    this.fns[id] = null;
   }
 
   exec() {
     console.log('current history state: ', history.state);
 
-    const index = this.getCurrent();
-    if (!index) return;
+    const id = this.getCurrentId();
+    if (!id) return;
 
-    const fn = this.fns[index];
+    const fn = this.fns[id];
     fn && fn();
   }
 
-  getCurrent() {
+  getCurrentId() {
     const { state } = history;
     const queue = state.split('→');
     return queue.pop();
