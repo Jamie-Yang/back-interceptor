@@ -34,16 +34,6 @@ export default class {
   }
 
   eject(id) {
-    const { state } = history;
-    const queue = state.split('→');
-    console.log(queue);
-
-    const index = this.queue.findIndex((_id) => id === _id);
-
-    const leftQueue = this.queue.slice(index + 1);
-    console.log(leftQueue);
-
-    this.queue.splice(index, 1);
     this.fns[id] = 'pass';
   }
 
