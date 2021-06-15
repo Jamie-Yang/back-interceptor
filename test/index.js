@@ -12,7 +12,7 @@ const bi1 = backInterceptor.use(() => {
 });
 
 backInterceptor.use(() => {
-  console.log('cb 1');
+  console.log('cb 2');
 });
 
 backInterceptor.eject(bi1);

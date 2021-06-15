@@ -1,5 +1,4 @@
-const BOL = '🅱🅾🅻';
-const EOL = '🅴🅾🅻';
+const BLANK = '🅱🅻🅰🅽🅺';
 
 export default class {
   constructor() {
@@ -10,6 +9,7 @@ export default class {
     this.queue = [];
     this.index = -1;
     this.fns = {};
+    this.prevId = -1;
     this.backHandler = () => this.exec();
     window.removeEventListener('popstate', this.backHandler);
     window.addEventListener('popstate', this.backHandler);
@@ -17,24 +17,34 @@ export default class {
 
   use(fn) {
     this.index += 1;
-    this.fns[this.index] = fn;
+    const id = String(this.index);
 
-    if (!this.checkValid()) return;
+    this.fns[id] = fn;
 
-    if (!this.queue.includes(this.index)) {
-      this.queue.push(this.index);
+    // if (!this.checkValid()) return;
+
+    if (!this.queue.includes(id)) {
+      this.queue.push(id);
 
       history.replaceState(this.createState(), null);
-      history.pushState(this.createState('eol'), null);
+      history.pushState(this.createState('blank'), null);
     }
 
-    return this.index;
+    return id;
   }
 
   eject(id) {
-    const index = this.queue.findIndex(id);
+    const { state } = history;
+    const queue = state.split('→');
+    console.log(queue);
+
+    const index = this.queue.findIndex((_id) => id === _id);
+
+    const leftQueue = this.queue.slice(index + 1);
+    console.log(leftQueue);
+
     this.queue.splice(index, 1);
-    this.fns[id] = null;
+    this.fns[id] = 'pass';
   }
 
   exec() {
@@ -44,7 +54,20 @@ export default class {
     if (!id) return;
 
     const fn = this.fns[id];
-    fn && fn();
+
+    if (fn === 'pass') {
+      const prevIndex = this.queue.findIndex((_id) => this.prevId === _id);
+      const curIndex = this.queue.findIndex((_id) => id === _id);
+      if (prevIndex > curIndex) {
+        history.back();
+      } else {
+        history.forward();
+      }
+    } else {
+      fn && fn();
+    }
+
+    this.prevId = id;
   }
 
   getCurrentId() {
@@ -53,16 +76,16 @@ export default class {
     return queue.pop();
   }
 
-  createState(isEOL) {
-    const queue = [BOL, ...this.queue];
-    if (isEOL) {
-      queue.push(EOL);
+  createState(inBlank) {
+    const queue = [...this.queue];
+    if (inBlank) {
+      queue.push(BLANK);
     }
     return queue.join('→');
   }
 
   checkValid() {
     const { state } = history;
-    return state === null || !state.includes(this.index);
+    return state === null || !state.includes(this.id);
   }
 }
