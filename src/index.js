@@ -1,81 +1,67 @@
 const BLANK = '🅱🅻🅰🅽🅺';
 
-export default class {
+export default class BackInterceptor {
   constructor() {
     this.init();
   }
 
   init() {
-    this.queue = [];
-    this.index = -1;
-    this.fns = {};
+    this.handlers = [];
     this.prevId = -1;
-    this.backHandler = () => this.exec();
-    window.removeEventListener('popstate', this.backHandler);
-    window.addEventListener('popstate', this.backHandler);
+
+    window.addEventListener('popstate', () => this.exec());
   }
 
   use(fn) {
-    this.index += 1;
-    const id = String(this.index);
+    this.handlers.push(fn);
 
-    this.fns[id] = fn;
+    history.replaceState(this.createState(), null);
+    history.pushState(this.createState('blank'), null);
 
-    // if (!this.checkValid()) return;
-
-    if (!this.queue.includes(id)) {
-      this.queue.push(id);
-
-      history.replaceState(this.createState(), null);
-      history.pushState(this.createState('blank'), null);
-    }
-
-    return id;
+    return this.handlers.length - 1;
   }
 
   eject(id) {
-    this.fns[id] = 'pass';
+    if (this.handlers[id]) {
+      this.handlers[id] = null;
+    }
   }
 
   exec() {
-    console.log('current history state: ', history.state);
-
     const id = this.getCurrentId();
-    if (!id) return;
 
-    const fn = this.fns[id];
+    // 路由前进至最右
+    if (id === BLANK) {
+      this.prevId = -1;
+      return;
+    }
 
-    if (fn === 'pass') {
-      const prevIndex = this.queue.findIndex((_id) => this.prevId === _id);
-      const curIndex = this.queue.findIndex((_id) => id === _id);
-      if (prevIndex > curIndex) {
+    const h = this.handlers[id];
+
+    if (h === null) {
+      // 跳过被eject的历史记录
+      if (this.prevId > id) {
         history.back();
       } else {
         history.forward();
       }
-    } else {
-      fn && fn();
+    } else if (h) {
+      h();
     }
 
     this.prevId = id;
   }
 
   getCurrentId() {
-    const { state } = history;
-    const queue = state.split('→');
-    return queue.pop();
+    const { state } = window.history;
+    return state[state.length - 1];
   }
 
   createState(inBlank) {
-    const queue = [...this.queue];
+    const ids = this.handlers.map((_h, i) => i);
     if (inBlank) {
-      queue.push(BLANK);
+      ids.push(BLANK);
     }
-    return queue.join('→');
-  }
-
-  checkValid() {
-    const { state } = history;
-    return state === null || !state.includes(this.id);
+    return ids;
   }
 }
